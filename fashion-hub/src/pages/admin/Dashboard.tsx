@@ -29,7 +29,7 @@ const Dashboard: React.FC = () => {
     fetchProducts();
   }, []);
 
-  if (!user || user.role !== 'admin') {
+  if (!user || !user.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
