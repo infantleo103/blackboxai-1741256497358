@@ -5,37 +5,40 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  category: 'men' | 'women' | 'kids';
-  subcategory: 'tshirts' | 'pants' | 'shirts' | 'shorts' | 'dresses' | 'tops';
+  category: 'men' | 'women' | 'accessories';
+  subcategory: string;
   sizes: string[];
+  colors: string[];
   images: string[];
   isCustomizable: boolean;
 }
 
-interface ProductsState {
+interface ProductState {
   items: Product[];
   filteredItems: Product[];
-  selectedProduct: Product | null;
+  loading: boolean;
+  error: string | null;
   filters: {
     category: string | null;
     subcategory: string | null;
     priceRange: { min: number; max: number } | null;
+    sizes: string[] | null;
+    sortBy: string | null;
   };
-  loading: boolean;
-  error: string | null;
 }
 
-const initialState: ProductsState = {
+const initialState: ProductState = {
   items: [],
   filteredItems: [],
-  selectedProduct: null,
+  loading: false,
+  error: null,
   filters: {
     category: null,
     subcategory: null,
     priceRange: null,
-  },
-  loading: false,
-  error: null,
+    sizes: null,
+    sortBy: null
+  }
 };
 
 const productSlice = createSlice({
@@ -45,55 +48,85 @@ const productSlice = createSlice({
     setProducts: (state, action: PayloadAction<Product[]>) => {
       state.items = action.payload;
       state.filteredItems = action.payload;
-    },
-    setSelectedProduct: (state, action: PayloadAction<Product | null>) => {
-      state.selectedProduct = action.payload;
-    },
-    setFilters: (
-      state,
-      action: PayloadAction<{
-        category?: string | null;
-        subcategory?: string | null;
-        priceRange?: { min: number; max: number } | null;
-      }>
-    ) => {
-      state.filters = { ...state.filters, ...action.payload };
-      
-      // Apply filters
-      state.filteredItems = state.items.filter((product) => {
-        const categoryMatch = !state.filters.category || product.category === state.filters.category;
-        const subcategoryMatch = !state.filters.subcategory || product.subcategory === state.filters.subcategory;
-        const priceMatch = !state.filters.priceRange || 
-          (product.price >= state.filters.priceRange.min && 
-           product.price <= state.filters.priceRange.max);
-        
-        return categoryMatch && subcategoryMatch && priceMatch;
-      });
+      state.loading = false;
+      state.error = null;
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
-    setError: (state, action: PayloadAction<string | null>) => {
+    setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
+      state.loading = false;
+    },
+    setFilters: (state, action: PayloadAction<Partial<ProductState['filters']>>) => {
+      state.filters = {
+        ...state.filters,
+        ...action.payload
+      };
+      
+      // Apply filters
+      let filtered = [...state.items];
+
+      // Category filter
+      if (state.filters.category) {
+        filtered = filtered.filter(item => item.category === state.filters.category);
+      }
+
+      // Subcategory filter
+      if (state.filters.subcategory) {
+        filtered = filtered.filter(item => item.subcategory === state.filters.subcategory);
+      }
+
+      // Price range filter
+      if (state.filters.priceRange) {
+        filtered = filtered.filter(item => 
+          item.price >= state.filters.priceRange!.min && 
+          item.price <= state.filters.priceRange!.max
+        );
+      }
+
+      // Size filter
+      if (state.filters.sizes && state.filters.sizes.length > 0) {
+        filtered = filtered.filter(item => 
+          state.filters.sizes!.some(size => item.sizes.includes(size))
+        );
+      }
+
+      // Sorting
+      if (state.filters.sortBy) {
+        switch (state.filters.sortBy) {
+          case 'price_asc':
+            filtered.sort((a, b) => a.price - b.price);
+            break;
+          case 'price_desc':
+            filtered.sort((a, b) => b.price - a.price);
+            break;
+          case 'name_asc':
+            filtered.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+          case 'name_desc':
+            filtered.sort((a, b) => b.name.localeCompare(a.name));
+            break;
+          default:
+            break;
+        }
+      }
+
+      state.filteredItems = filtered;
     },
     clearFilters: (state) => {
-      state.filters = {
-        category: null,
-        subcategory: null,
-        priceRange: null,
-      };
+      state.filters = initialState.filters;
       state.filteredItems = state.items;
-    },
-  },
+    }
+  }
 });
 
-export const {
-  setProducts,
-  setSelectedProduct,
-  setFilters,
-  setLoading,
-  setError,
-  clearFilters,
+export const { 
+  setProducts, 
+  setLoading, 
+  setError, 
+  setFilters, 
+  clearFilters 
 } = productSlice.actions;
 
 export default productSlice.reducer;
