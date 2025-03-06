@@ -1,16 +1,21 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Product {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   price: number;
-  category: 'men' | 'women' | 'accessories';
-  subcategory: string;
-  sizes: string[];
-  colors: string[];
-  images: string[];
+  category: 't-shirts' | 'hoodies' | 'jackets' | 'pants' | 'accessories';
+  stock: number;
+  imageUrl: string;
   isCustomizable: boolean;
+  customizationOptions?: {
+    colors: string[];
+    sizes: ('XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL')[];
+    printLocations: ('front' | 'back' | 'left-sleeve' | 'right-sleeve')[];
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ProductState {
@@ -72,11 +77,6 @@ const productSlice = createSlice({
         filtered = filtered.filter(item => item.category === state.filters.category);
       }
 
-      // Subcategory filter
-      if (state.filters.subcategory) {
-        filtered = filtered.filter(item => item.subcategory === state.filters.subcategory);
-      }
-
       // Price range filter
       if (state.filters.priceRange) {
         filtered = filtered.filter(item => 
@@ -88,7 +88,9 @@ const productSlice = createSlice({
       // Size filter
       if (state.filters.sizes && state.filters.sizes.length > 0) {
         filtered = filtered.filter(item => 
-          state.filters.sizes!.some(size => item.sizes.includes(size))
+          item.customizationOptions?.sizes.some(size => 
+            state.filters.sizes!.includes(size)
+          )
         );
       }
 
