@@ -9,23 +9,10 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Customize from './pages/Customize';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminLogin from './pages/admin/Login';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import { useDispatch } from 'react-redux';
-import { setUser } from './store/slices/authSlice';
 
 const App: React.FC = () => {
-  const dispatch = useDispatch();
-
-  // Simulating admin user login for demo purposes
-  React.useEffect(() => {
-    dispatch(setUser({
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@example.com',
-      isAdmin: true
-    }));
-  }, [dispatch]);
-
   return (
     <Router>
       <div className="flex flex-col min-h-screen">
@@ -40,6 +27,7 @@ const App: React.FC = () => {
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/customize/:productId" element={<Customize />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route 
               path="/admin/dashboard" 
               element={
