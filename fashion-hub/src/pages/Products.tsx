@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { setFilters, clearFilters } from '../store/slices/productSlice';
+import { setProducts, setLoading, setError, setFilters, clearFilters } from '../store/slices/productSlice';
 import type { Product } from '../store/slices/productSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { getProducts } from '../services/api';
 
 const ProductSkeleton = () => (
   <div className="bg-white rounded-lg shadow overflow-hidden animate-pulse">
@@ -19,7 +20,7 @@ const ProductSkeleton = () => (
 
 const Products: React.FC = () => {
   const dispatch = useDispatch();
-  const { category, subcategory } = useParams();
+  const { category } = useParams();
   const { filteredItems, loading, error, filters } = useSelector((state: RootState) => state.products);
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000 });
   const [sortBy, setSortBy] = useState<string>('default');
@@ -27,16 +28,31 @@ const Products: React.FC = () => {
   
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        dispatch(setLoading(true));
+        const products = await getProducts();
+        dispatch(setProducts(products));
+      } catch (err) {
+        dispatch(setError(err instanceof Error ? err.message : 'Failed to fetch products'));
+      }
+    };
+
+    fetchProducts();
+  }, [dispatch]);
+
+  // Apply category filters
   useEffect(() => {
     dispatch(setFilters({
-      category: category || null,
-      subcategory: subcategory || null,
+      category: category || null
     }));
 
     return () => {
       dispatch(clearFilters());
     };
-  }, [category, subcategory, dispatch]);
+  }, [category, dispatch]);
 
   const handlePriceRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -129,14 +145,6 @@ const Products: React.FC = () => {
                 <Link to={`/products/${category}`} className="hover:text-blue-600 transition-colors">
                   {category.charAt(0).toUpperCase() + category.slice(1)}
                 </Link>
-              </li>
-            </>
-          )}
-          {subcategory && (
-            <>
-              <li>/</li>
-              <li className="text-gray-900 font-medium">
-                {subcategory.charAt(0).toUpperCase() + subcategory.slice(1)}
               </li>
             </>
           )}
@@ -266,12 +274,12 @@ const Products: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredItems.map((product: Product) => (
                   <div
-                    key={product.id}
+                    key={product._id}
                     className="bg-white rounded-lg shadow overflow-hidden group transform hover:-translate-y-1 transition-all duration-300 hover:shadow-xl"
                   >
                     <div className="relative aspect-w-3 aspect-h-4">
                       <img
-                        src={product.images[0]}
+                        src={product.imageUrl}
                         alt={product.name}
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
                       />
@@ -290,14 +298,14 @@ const Products: React.FC = () => {
                       <p className="text-gray-600 mb-4">${product.price.toFixed(2)}</p>
                       <div className="flex space-x-2">
                         <Link
-                          to={`/product/${product.id}`}
+                          to={`/product/${product._id}`}
                           className="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all hover:shadow-lg"
                         >
                           View Details
                         </Link>
                         {product.isCustomizable && (
                           <Link
-                            to={`/customize/${product.id}`}
+                            to={`/customize/${product._id}`}
                             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-all hover:shadow-lg"
                             title="Customize Product"
                           >
